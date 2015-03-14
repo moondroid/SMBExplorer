@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="C:\Users\Marco\DEVELOPMENT\sdk\extras\android\m2repository\com\android\support\support-annotations\21.0.3\support-annotations-21.0.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="4b74cefe1f0c1b819e7260c8627a14674e37fd35">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-de37834a980560e13b87fd74105e14bc44850295.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\exploded-aar\SMB Explorer\networkexplorer\unspecified\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="7bbc671e7fa36a9d5a34fca773c43f6067f923f3">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\classes-ab1a9e923335031987196b28316eaa9be8988f91.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\exploded-aar\SMB Explorer\networkexplorer\unspecified\libs\jcifs.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="10c77686194c9d576e4203aa28a5a927fe4c4a53">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\jcifs-513d43b708ee7157514fe8c07ba2749dfd155038.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\exploded-aar\com.android.support\support-v4\21.0.3\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="2c91c949a45a21cdecf26e03951e46c7beec9ad8">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\classes-662d72a32fc6d8078aea4ee3338766a37f8dc685.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\exploded-aar\com.android.support\support-v4\21.0.3\libs\internal_impl-21.0.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="01ec05bfbafcc07646ba813000bf2ef11742dd03">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-a917993e30f2d9d1fc58d4b0346b4b3a85874e66.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\21.0.3\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="81d42bf983a8741f4888a6e333e454e4a5e0eeb7">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\classes-71b0871a0c3270bed9eb24574f1a5142df4777c8.jar" />
+    </item>
+    <item
+        jar="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\libs\commons-io-2.0.1.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="7ffdb02f95af1c1a208544e076cea5b8e66e731a">
+        <dex dex="C:\Users\Marco\AndroidStudioProjects\SMB Explorer\app\build\intermediates\pre-dexed\debug\commons-io-2.0.1-9b26b582309110284f335fc537c47847d07829c1.jar" />
+    </item>
+
+</items>

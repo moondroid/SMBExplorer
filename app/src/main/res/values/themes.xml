@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.FileExplorer.Light" parent="android:Theme.Holo.Light">
+        <item name="android:listSelector">@drawable/list_item_bg_light</item>
+    </style>
+
+    <style name="Theme.FileExplorer.Dark" parent="android:Theme.Holo">
+        <item name="android:listSelector">@drawable/list_item_bg_dark</item>
+    </style>
+
+</resources>

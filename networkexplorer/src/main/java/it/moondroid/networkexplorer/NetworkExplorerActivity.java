@@ -1,0 +1,446 @@
+package it.moondroid.networkexplorer;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.prefs.Preferences;
+
+import jcifs.netbios.NbtAddress;
+
+import org.apache.http.conn.util.InetAddressUtils;
+
+import android.app.FragmentManager;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.app.ListActivity;
+import android.content.Context;
+import android.content.Intent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.TextView;
+import android.widget.Toast;
+
+/**
+ * MagicNetworkExplorer provides a simple local (WiFi) network attached device
+ * selection activity that returns the ip and name of the device selected.
+ *
+ * @author dream09
+ */
+public class NetworkExplorerActivity extends ListActivity {
+
+    static final String TAG = "NetworkExplorerActivity";
+
+    /* Variables */
+    public static final String KEY_SEND_TITLE = "title";
+    public static final String KEY_RETURN_IPADDRESS = "ipaddress";
+    public static final String KEY_RETURN_NAME = "name";
+
+    private NetworkScanner scanner;
+    private NetworkScanResultAdapter adapter;
+
+    private String myIPAddress;
+
+    private List<Map<String, String>> IPAddresses;
+
+    private Menu actionMenu;
+
+	/* Overridden methods */
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_network_explorer);
+
+        // Set title to sent title.
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            String myTitle = extras.getString(KEY_SEND_TITLE);
+            if (myTitle != null && myTitle.length() > 0)
+                this.setTitle(myTitle);
+        }
+
+        // Setup list adapter.
+        //IPAddresses = new ArrayList<Map<String, String>>();
+        IPAddresses = ExplorerPreferences.getIPAddresses(this);
+        adapter = new NetworkScanResultAdapter(this, R.layout.scanner_ipaddress_list_view, IPAddresses);
+        setListAdapter(adapter);
+
+        adapter.setOnInfoClickListener(new NetworkScanResultAdapter.OnInfoClickListener() {
+            @Override
+            public void onInfoClick(int position) {
+                Map<String, String> item = adapter.getItem(position);
+
+                FragmentManager fm = NetworkExplorerActivity.this.getFragmentManager();
+                AuthenticationDialogFragment editNameDialog =
+                        AuthenticationDialogFragment.newInstance(item.get(NetworkScanResultAdapter.KEY_IPADDRESS));
+                editNameDialog.show(fm, "fragment_edit_name");
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //Log.d(TAG, "onResume");
+
+        // Start initial scan.
+        //startNetworkScanner();
+
+        // Get our ipaddress.
+        myIPAddress = getMyIPAddress();
+        setMyIPAddress();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        //Log.d(TAG, "onPause");
+
+        if (scanner != null) {
+            //Log.d(TAG, "cancelling scanner");
+            scanner.cancel(true);
+            cleanUpNetworkScanner();
+        }
+
+        ExplorerPreferences.setIPAddresses(this, IPAddresses);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_network_explorer, menu);
+
+        this.actionMenu = menu;
+        if (scanner != null)
+            setRefreshActionButtonState(true);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int itemId = item.getItemId();
+        if (itemId == R.id.action_refresh) {
+            startNetworkScanner();
+        }
+
+        return true;
+    }
+
+
+
+	/* Methods */
+
+    /**
+     * Method shows the indeterminate progess circle in the
+     * action bar if refreshing is true else hides it.
+     *
+     * @param refreshing
+     */
+    private void setRefreshActionButtonState(final boolean refreshing) {
+        if (actionMenu != null) {
+            final MenuItem refreshItem = actionMenu.findItem(R.id.action_refresh);
+            if (refreshItem != null) {
+                if (refreshing) {
+                    refreshItem.setActionView(R.layout.actionbar_indeterminate_progress);
+                } else {
+                    refreshItem.setActionView(null);
+                }
+            }
+        }
+    }
+
+    /**
+     * Method gets the ipaddress and starts the network
+     * scan based on this.
+     */
+    private void startNetworkScanner() {
+
+        //Log.d(TAG, "Starting network scanner");
+
+        // Get our ipaddress.
+        myIPAddress = getMyIPAddress();
+        setMyIPAddress();
+
+        // Check if wifi connected.
+        ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        if (!mWifi.isConnected()) {
+            setWifiError();
+            return;
+        }
+
+        // Start scanner if not running.
+        if (scanner != null)
+            return;
+
+        scanner = new NetworkScanner();
+        scanner.execute(new String[]{myIPAddress});
+    }
+
+    private void setMyIPAddress(){
+        TextView ipaddressTV = (TextView) findViewById(R.id.main_ipaddress);
+        if (myIPAddress != null) {
+            ipaddressTV.setText(myIPAddress);
+        } else {
+            ipaddressTV.setText(getString(R.string.main_ipaddress_error));
+            return;
+        }
+    }
+
+    /**
+     * Method cleans up the scanner.
+     */
+    private void cleanUpNetworkScanner() {
+        scanner = null;
+        setRefreshActionButtonState(false);
+        clearScanningIP();
+    }
+
+    /**
+     * Method clears the scan results shown in the list view.
+     */
+    private void cleanScanResults() {
+        IPAddresses.clear();
+        adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Method adds the argument result to the list and calls
+     * for the list view to be updated.
+     *
+     * @param result
+     */
+    private void addScanResult(Map<String, String> result) {
+        IPAddresses.add(result);
+        adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Method returns the IPAddress of the current device.
+     *
+     * @return
+     */
+    private String getMyIPAddress() {
+
+        String myIP = null;
+        boolean useIPv4 = true;    // Force IPv4 as IPv6 not checked.
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addrs) {
+                    if (!addr.isLoopbackAddress()) {
+                        String sAddr = addr.getHostAddress().toUpperCase();
+                        boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                        if (useIPv4) {
+                            if (isIPv4)
+                                myIP = sAddr;
+                        } else {
+                            if (!isIPv4) {
+                                //int delim = sAddr.indexOf('%'); // drop ip6 port suffix
+                                //return delim<0 ? sAddr : sAddr.substring(0, delim);
+                                //TODO: check out IPv6!
+                            }
+                        }
+                    }
+                }
+            }
+
+        } catch (SocketException e) {
+            //e.printStackTrace();
+        }
+
+        //Log.d(TAG, "My ipaddress is " + myIP);
+
+        return myIP;
+    }
+
+    /**
+     * Method updates the scanning status area
+     * with the argument.
+     *
+     * @param ip
+     */
+    private void setScanningIP(CharSequence ip) {
+        TextView tv = (TextView) findViewById(R.id.main_scanner_status);
+        if (tv != null) {
+            tv.setText(getString(R.string.main_scanner_status_scanning) + " " + ip);
+        }
+    }
+
+    /**
+     * Method displays the wifi not connected error message.
+     */
+    private void setWifiError() {
+        TextView tv = (TextView) findViewById(R.id.main_scanner_status);
+        if (tv != null) {
+            tv.setText(getString(R.string.main_scanner_status_wifierror));
+        }
+    }
+
+    /**
+     * Method sets the scanning status to idle.
+     */
+    private void clearScanningIP() {
+        TextView tv = (TextView) findViewById(R.id.main_scanner_status);
+        if (tv != null) {
+            tv.setText(getString(R.string.main_scanner_status_idle));
+        }
+    }
+
+    /**
+     * Method handles a click on a device in the list.
+     */
+    @Override
+    protected void onListItemClick(android.widget.ListView l, android.view.View v, int position, long id) {
+        HashMap<String, String> o = (HashMap<String, String>) adapter.getItem(position);
+        Intent data = new Intent();
+        data.putExtra(KEY_RETURN_IPADDRESS, o.get(NetworkScanResultAdapter.KEY_IPADDRESS));
+        data.putExtra(KEY_RETURN_NAME, o.get(NetworkScanResultAdapter.KEY_NAME));
+        setResult(RESULT_OK, data);
+        finish();
+    }
+
+
+
+
+    /**
+     * NetworkScanner provides a network scanner off the UI thread.
+     * it returns a list containing maps (IP address and name) of devices found.
+     *
+     * @author dream09
+     */
+    private class NetworkScanner extends AsyncTask<String, String, Void> {
+
+        static final String TAG = "NetworkScanner";
+
+        /* Variables */
+        public static final int SCAN_TIMEOUT = 300;
+
+
+
+		/* Overridden methods */
+
+        @Override
+        protected Void doInBackground(String... subnetList) {
+
+            // Get subnet.
+            String ipAddress = subnetList[0];
+            String subnet = ipAddress.substring(0, ipAddress.lastIndexOf("."));
+            String currentHost;
+
+            // Loop through all possible values.
+            for (int i = 1; i <= 255; i++) {
+
+                // Continually check if we've been cancelled and handle.
+                if (isCancelled()) {
+                    //Log.d(TAG, "We've been cancelled!");
+                    break;
+                }
+
+                // Setup host to check.
+                currentHost = subnet + "." + i;
+                if (currentHost.equals(ipAddress))
+                    continue;
+
+                // Update status display.
+                String[] ipPass = {currentHost};
+                publishProgress(ipPass);
+                //System.out.println("scanning " + host);
+
+                // Check if we can reach this address.
+                boolean reachable = false;
+                try {
+                    InetAddress checkAddress = InetAddress.getByName(currentHost);
+                    try {
+                        // This method fails on Windows.
+                        reachable = checkAddress.isReachable(SCAN_TIMEOUT);
+                        if (!reachable) {
+                            // Check for Windows CIFS (default port 139).
+                            try {
+                                Socket sock = new Socket();
+                                sock.connect(new InetSocketAddress(currentHost, 139), SCAN_TIMEOUT);
+                                if (sock.isConnected()) {
+                                    sock.close();
+                                    reachable = true;
+                                }
+                            } catch (IOException e) {
+                                //System.out.println(host + " is not reachable (socket exception)");
+                            }
+                        }
+                    } catch (IOException e) {
+                        //System.out.println("Error checking if " + host + " is reachable");
+                    }
+                } catch (UnknownHostException e1) {
+                    //System.out.println("Error getting by name " + host);
+                }
+
+                // If reachable get details and store.
+                if (reachable) {
+                    try {
+                        NbtAddress addressInfo = NbtAddress.getByName(currentHost);
+
+                        boolean ipActive;
+                        try {
+                            ipActive = addressInfo.isActive();
+                        } catch (Exception e) {
+                            ipActive = false;
+                        }
+
+                        if (ipActive) {
+                            //Log.d(TAG, "Passing " + addressInfo.getHostName());
+                            String[] dataPass = {currentHost, addressInfo.getHostName(), currentHost};
+                            publishProgress(dataPass);
+                        }
+
+                    } catch (UnknownHostException e) {
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            setRefreshActionButtonState(true);
+            cleanScanResults();
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            cleanUpNetworkScanner();
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            if (values != null) {
+                setScanningIP(values[0]);
+                if (values.length == 3) {
+                    HashMap<String, String> addressToSave = new HashMap<String, String>();
+                    addressToSave.put(NetworkScanResultAdapter.KEY_NAME, values[1]);
+                    addressToSave.put(NetworkScanResultAdapter.KEY_IPADDRESS, values[2]);
+                    addScanResult(addressToSave);
+                }
+            }
+
+        }
+    }
+
+}

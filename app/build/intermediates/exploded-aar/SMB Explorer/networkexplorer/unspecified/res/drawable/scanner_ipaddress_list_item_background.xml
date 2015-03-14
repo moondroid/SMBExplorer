@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:state_activated="true" android:drawable="@color/scanner_list_item_selected"/>
+</selector><!-- From: file:/C:/Users/Marco/AndroidStudioProjects/SMB%20Explorer/networkexplorer/src/main/res/drawable/scanner_ipaddress_list_item_background.xml -->
